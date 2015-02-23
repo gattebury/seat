@@ -128,18 +128,58 @@ class AssetList extends BaseApi
                 if (isset($asset->contents)) {
 
                     foreach ($asset->contents as $content) {
+						
+                        // Process the sub-content if there are any (fix for #152) <<
 
-                        $content_data = new \EveCorporationAssetListContents;
+                        // This should be a container
+                        if (isset($content->contents)) {
 
-                        $content_data->corporationID = $corporationID;
-                        $content_data->itemID = $asset_data->itemID;
-                        $content_data->typeID = $content->typeID;
-                        $content_data->quantity = $content->quantity;
-                        $content_data->flag = $content->flag;
-                        $content_data->singleton = $content->singleton;
-                        $content_data->rawQuantity = (isset($content->rawQuantity) ? $content->rawQuantity : 0);
+                            $container_data = new \EveCorporationAssetList();
 
-                        $asset_data->contents()->save($content_data);
+                            $location_retreive[] = $content->itemID;
+
+                            $container_data->corporationID = $corporationID;
+                            $container_data->itemID = $content->itemID;
+                            $container_data->locationID = $asset->locationID;
+                            $container_data->typeID = $content->typeID;
+                            $container_data->quantity = $content->quantity;
+                            $container_data->flag = $content->flag;
+                            $container_data->singleton = $content->singleton;
+                            $container_data->save();
+
+                            foreach ($content->contents as $lastLevel) {
+
+                                $lastLevel_data = new \EveCorporationAssetListContents();
+
+                                $lastLevel_data->corporationID = $corporationID;
+                                $lastLevel_data->itemID = $lastLevel->itemID;
+                                $lastLevel_data->typeID = $lastLevel->typeID;
+                                $lastLevel_data->quantity = $lastLevel->quantity;
+                                $lastLevel_data->flag = $lastLevel->flag;
+                                $lastLevel_data->singleton = $lastLevel->singleton;
+                                $lastLevel_data->rawQuantity = (isset($lastLevel->rawQuantity) ? $lastLevel->rawQuantity : 0);
+
+                                $container_data->contents()->save($lastLevel_data);
+
+                            }
+                        // last level has been reached
+                        } else {
+
+                            $content_data = new \EveCorporationAssetListContents;
+
+                            $content_data->corporationID = $corporationID;
+                            $content_data->itemID = $asset_data->itemID;
+                            $content_data->typeID = $content->typeID;
+                            $content_data->quantity = $content->quantity;
+                            $content_data->flag = $content->flag;
+                            $content_data->singleton = $content->singleton;
+                            $content_data->rawQuantity = (isset($content->rawQuantity) ? $content->rawQuantity : 0);
+
+                            $asset_data->contents()->save($content_data);
+
+                        }
+
+                        // >>
                     }
                 }
             }
